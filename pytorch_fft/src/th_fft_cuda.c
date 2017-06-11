@@ -18,6 +18,7 @@ extern THCState *state;
 #include "generic/helpers.c"
 #include "THCGenerateFloatType.h"
 
+// fft2
 #define cufft_direction CUFFT_FORWARD
 #define func_name fft2
 
@@ -27,8 +28,29 @@ extern THCState *state;
 #undef cufft_direction
 #undef func_name
 
+// fft
+#define cufft_direction CUFFT_FORWARD
+#define func_name fft
+
+#include "generic/th_fft_cuda.c"
+#include "THCGenerateFloatType.h"
+
+#undef cufft_direction
+#undef func_name
+
+// fft2 reverse
 #define cufft_direction CUFFT_INVERSE
 #define func_name ifft2
+
+#include "generic/th_fft_cuda.c"
+#include "THCGenerateFloatType.h"
+
+#undef cufft_direction
+#undef func_name
+
+// fft reverse
+#define cufft_direction CUFFT_INVERSE
+#define func_name ifft
 
 #include "generic/th_fft_cuda.c"
 #include "THCGenerateFloatType.h"
@@ -40,6 +62,7 @@ extern THCState *state;
 #undef cufft_type
 #undef cufft_exec
 
+
 // Generate Double FFTs
 #define cufft_complex cufftDoubleComplex
 #define cufft_type CUFFT_Z2Z
@@ -48,6 +71,8 @@ extern THCState *state;
 #include "generic/helpers.c"
 #include "THCGenerateDoubleType.h"
 
+
+// fft2
 #define cufft_direction CUFFT_FORWARD
 #define func_name fft2
 
@@ -57,6 +82,18 @@ extern THCState *state;
 #undef cufft_direction
 #undef func_name
 
+// fft
+#define cufft_direction CUFFT_FORWARD
+#define func_name fft
+
+#include "generic/th_fft_cuda.c"
+#include "THCGenerateDoubleType.h"
+
+#undef cufft_direction
+#undef func_name
+
+
+// fft2
 #define cufft_direction CUFFT_INVERSE
 #define func_name ifft2
 
@@ -65,6 +102,19 @@ extern THCState *state;
 
 #undef cufft_direction
 #undef func_name
+
+
+// fft
+#define cufft_direction CUFFT_INVERSE
+#define func_name ifft
+
+#include "generic/th_fft_cuda.c"
+#include "THCGenerateDoubleType.h"
+
+#undef cufft_direction
+#undef func_name
+
+
 
 #undef cufft_complex
 #undef cufft_type

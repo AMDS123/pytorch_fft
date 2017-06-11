@@ -23,6 +23,24 @@ def run_fft(x, z):
     else:
         print("Cuda not available, cannot test.")
 
+def run_fft1(x, z):
+    if torch.cuda.is_available():
+        y1, y2 = cfft.fft2(x, z)
+        x_np = x.cpu().numpy().squeeze()
+        y_np = nfft.fft2(x_np)
+        assert np.allclose(y1.cpu().numpy(), y_np.real)
+        assert np.allclose(y2.cpu().numpy(), y_np.imag)
+
+        assert np.allclose(y1[1,0].cpu().numpy(), nfft.fft2(x_np[1,0]).real)
+
+        x0, z0 = cfft.ifft2(y1, y2)
+        x0_np = nfft.ifft2(y_np)
+        assert np.allclose(x0.cpu().numpy(), x0_np.real)
+        assert np.allclose(z0.cpu().numpy(), x0_np.imag)
+
+    else:
+        print("Cuda not available, cannot test.")
+
 def test_acc(): 
     batch = 3
     nch = 4

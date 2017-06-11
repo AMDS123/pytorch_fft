@@ -1,10 +1,11 @@
 #ifndef THC_GENERIC_FILE
 #define THC_GENERIC_FILE "generic/th_fft_cuda.c"
-#else 
+#else
 
-int th_(THCTensor *input1, THCTensor *input2, THCTensor *output1, THCTensor *output2)
+int th_(THCTensor *input1, THCTensor *input2, THCTensor *output1, THCTensor *output2, int d)
 {
-  // Require that all tensors be of the same size. 
+
+  // Require that all tensors be of the same size.
   if (!THCTensor_(isSameSizeAs)(state, input1, output1))
     return 0;
   if (!THCTensor_(isSameSizeAs)(state, input1, output2))
@@ -12,15 +13,19 @@ int th_(THCTensor *input1, THCTensor *input2, THCTensor *output1, THCTensor *out
   if (!THCTensor_(isSameSizeAs)(state, input1, input2))
     return 0;
 
-  // Get the tensor dimensions (batchsize, rows, cols). 
+  // Get the tensor dimensions (batchsize, rows, cols).
   int ndim = THCTensor_(nDimension)(state, input1);
   int batch = 1;
   int i;
-  for(i=0; i<ndim-2; i++) {
+  for(i=0; i<ndim-d; i++) {
     batch *= THCTensor_(size)(state, input1, i);
   }
-  int r = THCTensor_(size)(state, input1, ndim-2);
+
   int c = THCTensor_(size)(state, input1, ndim-1);
+  int r = 1;
+  if (d > 1) {
+    r = THCTensor_(size)(state, input1, ndim-2);
+  }
 
 
   // Get actual tensor data.
@@ -30,7 +35,7 @@ int th_(THCTensor *input1, THCTensor *input2, THCTensor *output1, THCTensor *out
   real *output2_data = THCTensor_(data)(state, output2);
 
   // Turn input into a complex array.
-  cufft_complex *input_complex; 
+  cufft_complex *input_complex;
   cudaMalloc((void**)&input_complex, sizeof(cufft_complex)*batch*r*c);
   if (cudaGetLastError() != cudaSuccess) {
     fprintf(stderr, "Cuda error: Failed to allocate\n");
@@ -40,34 +45,46 @@ int th_(THCTensor *input1, THCTensor *input2, THCTensor *output1, THCTensor *out
   pair2complex(input1_data, input2_data, input_complex, batch*r*c);
 
   // Allocate the complex array to store the output
-  cufft_complex *output_complex; 
+  cufft_complex *output_complex;
   cudaMalloc((void**)&output_complex, sizeof(cufft_complex)*batch*r*c);
   if (cudaGetLastError() != cudaSuccess) {
     fprintf(stderr, "Cuda error: Failed to allocate\n");
     return -1;
   }
 
-  // Make the fft plan. 
+  // Make the fft plan.
   cufftHandle plan;
-  int rank = 2;
-  int n[2] = {r, c};
-  int dist = r*c;
-  int nembed[] = {r, c};
-  int stride = 1;
-  if (cufftPlanMany(&plan, rank, n, 
-                    nembed, stride, dist, 
-                    nembed, stride, dist, 
+
+  if (d == 1)
+  {
+    if (cufftPlan1d(&plan, c, cufft_type, batch) != CUFFT_SUCCESS){
+        fprintf(stderr, "CUFFT error: Plan creation failed");
+        return -1;
+    }
+  }
+  else if (d == 2)
+  {
+    int rank = 2;
+    int n[2] = {r, c};
+    int dist = r*c;
+    int nembed[] = {r, c};
+    int stride = 1;
+    if (cufftPlanMany(&plan, rank, n,
+                    nembed, stride, dist,
+                    nembed, stride, dist,
                     cufft_type, batch) != CUFFT_SUCCESS) {
-    fprintf(stderr, "CUFFT error: Plan creation failed");
-    return -1;
+      fprintf(stderr, "CUFFT error: Plan creation failed");
+      return -1;
+    }
   }
 
-  // Execute the fft plan. 
+
+  // Execute the fft plan.
   if (cufft_exec(plan, input_complex, output_complex, cufft_direction) != CUFFT_SUCCESS) {
     fprintf(stderr, "CUFFT error: ExecC2C failed");
     return -1;
   }
-  // Not sure if this is necessary. 
+  // Not sure if this is necessary.
   if (cudaThreadSynchronize() != cudaSuccess){
     fprintf(stderr, "Cuda error: Failed to synchronize\n");
     return -1;
