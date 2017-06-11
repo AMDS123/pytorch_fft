@@ -1,4 +1,4 @@
-# A PyTorch wrapper for CUDA FFTs [![License][license-image]][license]
+# A PyTorch wrapper for CUDA FFTs, support 1D, 2D C2C fft ifft [![License][license-image]][license]
 
 [license-image]: http://img.shields.io/badge/license-Apache--2-blue.svg?style=flat
 [license]: LICENSE
